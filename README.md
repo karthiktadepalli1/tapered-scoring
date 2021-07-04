@@ -15,4 +15,4 @@ My analysis has two results:
 1. Each round had no statistically significant effect on a team's probability of breaking.
 2. Judge quality in round 1 does not distort the break.
 
-Each of these is expanded on in `analysis.md`.
+Each of these is expanded on in `analysis.md`. To inspect the code and analysis itself, see `analysis.Rmd`.

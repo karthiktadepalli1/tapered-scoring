@@ -7,7 +7,7 @@ output:
 ---
 
 ```{r, include=F}
-knitr::opts_chunk$set(echo = T)
+knitr::opts_chunk$set(echo = F)
 knitr::opts_chunk$set(message = F)
 knitr::opts_chunk$set(warning = F)
 
@@ -49,7 +49,7 @@ IV requires two conditions be met for the estimation to get a reliable causal in
 
 In this setting, the motion in a given round has to be imbalanced for the first stage to be strong. This is not just side imbalance, as we normally understand it, but whether all four teams have balanced points. This means the instrument is usually strong because small imbalances amplify each other in the statistical comparison. For example, round 2 (THW convert marriages into renewable contracts) has a tiny gov skew (1.54 points) and a moderate opening skew (1.65 points) but a large Opening Government skew (1.75 points), which makes it a strong instrument.
 
-The exclusion restriction is likely satisfied because position assignment is random. The only wrinkle in this is that position assignment in each round is not *actually* random: it depends on your position assignment for previous rounds. However, since every team gets every position twice (8 rounds, 4 positions) this is unlikely to cause an issue. That said, the exclusion restriction is untestable and you can decide whether you find it credible in this situation.
+The exclusion restriction is likely satisfied because position assignment is random. The only wrinkle in this is that position assignment in each round is not *actually* random: it depends on your position assignment for previous rounds. However, since every team almost gets every position twice (8 rounds, 4 positions) this is unlikely to cause an issue. That said, the exclusion restriction is untestable and you can decide whether you find it credible in this situation.
 
 # Observation 1: Each round had no individual impact on the break
 
@@ -160,10 +160,6 @@ b <- s %>% filter(chair_broke == "Chair broke") %>% pull(tot_points)
 nb <- s %>% filter(chair_broke == "Chair didn't break") %>% pull(tot_points)
 test <- ks.test(b, nb, tot_points ~ chair, s) %>% broom::tidy()
 kable(test, format = 'markdown')
-# test %>% select(-alternative) %>% gt() %>% cols_align("center") %>% tab_header("") %>%
-#   tab_style(style = cell_text(weight = "bold"), location = cells_body(columns = vars(p.value))) %>%
-#   tab_header("R1 chair quality variation doesn't create different outcomes for teams") %>%
-#   tab_source_note("Chair quality proxied by breaking.")
 ```
 
 So the major objection I've heard to tapered scoring also doesn't seem to hold: judge variance doesn't really create variance in a team's overall outcome. This is pretty consistent with the first observation that each individual round has no impact on the break.

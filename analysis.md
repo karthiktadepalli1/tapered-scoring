@@ -76,50 +76,17 @@ instrument.
 The exclusion restriction is likely satisfied because position
 assignment is random. The only wrinkle in this is that position
 assignment in each round is not *actually* random: it depends on your
-position assignment for previous rounds. However, since every team gets
-every position twice (8 rounds, 4 positions) this is unlikely to cause
-an issue. That said, the exclusion restriction is untestable and you can
-decide whether you find it credible in this situation.
+position assignment for previous rounds. However, since every team
+almost gets every position twice (8 rounds, 4 positions) this is
+unlikely to cause an issue. That said, the exclusion restriction is
+untestable and you can decide whether you find it credible in this
+situation.
 
 Observation 1: Each round had no individual impact on the break
 ===============================================================
 
 The most important result of my analysis is summarized in the following
 picture:
-
-``` r
-# IV break probabilities against winning each round
-break_df <- data.frame(round = integer(), estimate = double(), se = double(), weak_pval = double(),
-                       type = character())
-results <- results %>%
-  group_by(round, position) %>%
-  mutate(pos_rank_round = mean(rank)) %>% ungroup()
-
-round_impact <- function(r) {
-  iv <- ivreg(broke ~ rank | pos_rank_round, data = filter(results, round == r))
-  ols <- lm(broke ~ rank, data = filter(results, round == r))
-  s_iv <- summary(iv, vcov = sandwich, diagnostics = T)
-  s_ols <- summary(ols, vcov = sandwich)
-  row_iv <- data.frame(round = r, estimate = s_iv$coefficients[2,1], se = s_iv$coefficients[2,2],
-                    weak_pval = s_iv$diagnostics[1,4], type = "Causal")
-  row_ols <- data.frame(round = r, estimate = s_ols$coefficients[2,1], se = s_ols$coefficients[2,2],
-                        weak_pval = NA, type = "Correlation")
-  break_df <<- bind_rows(break_df, row_iv, row_ols)
-}
-
-x <- sapply(1:8, round_impact)
-
-# graph with the standard errors
-ggplot(break_df, aes(x = round, y = estimate, color = type)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = estimate- 1.64*se, ymax = estimate+ 1.64*se), width = 0.2) +
-  scale_x_continuous(breaks = 1:8) +
-  geom_hline(yintercept = 0, color = 'black', linetype = 'dashed') +
-  facet_wrap(~type, scales = "free") +
-  labs(x = "Round number", y = "Estimated impact of points on break odds",
-       title = "Winning a given round has no significant impact on break odds") +
-  theme(plot.title = element_text(hjust = 0.5, size = 14))
-```
 
 ![](analysis_files/figure-markdown_github/winning_on_break-1.png)
 
@@ -156,20 +123,6 @@ One particularly strong illustration of this null effect comes from
 round 1. Even though R1 was highly imbalanced (1.83 points to opp), and
 R1 was weighted the highest of all rounds (9 points to winners), the
 break had exactly 16 teams who opped R1 and 16 teams who goved R1.
-
-``` r
-results %>%
-  filter(round == 1) %>%
-  mutate(broke = ifelse(broke, "Broke", "Didn't break"),
-         position = ifelse(grepl("Opposition", position), "Opp", "Gov")) %>%
-  ggplot(aes(x = broke, fill = position)) +
-  geom_bar(position = "dodge") +
-  labs(x = "", y = "Number of teams",
-       title = "Round 1 motion imbalance did not affect the break",
-       fill = "Round 1 position") +
-  theme(plot.title = element_text(hjust = 0.5, size = 16),
-        legend.position = "bottom")
-```
 
 ![](analysis_files/figure-markdown_github/r1_on_break-1.png)
 
@@ -220,30 +173,6 @@ judge assignment is random, unlike round 1 scores. So I compare teams
 who were judged in round 1 by a chair who eventually broke, to teams who
 were judged by a non-breaking chair in round 1.
 
-``` r
-# did r1 judging push up teams who lost later?
-
-judge_r1 <- results %>%
-  filter(round == 1) %>%
-  pivot_wider(id_cols = "chair", names_from = "position", values_from = "team")
-colnames(judge_r1)[2:5] <- c("og", "co", "cg", "oo")
-
-s <- results %>%
-  group_by(team) %>% mutate(tot_points = sum(points)) %>% ungroup() %>%
-  filter(round == 1) %>%
-  left_join(judge_r1) %>%
-  group_by(chair_broke) %>%
-  mutate(chair_broke = ifelse(chair_broke == 0, "Chair didn't break", "Chair broke"))
-
-s %>%
-  mutate(mean_points = mean(tot_points)) %>%
-  ggplot(aes(x = tot_points, fill = chair_broke, alpha = 0.5)) + geom_density() +
-  geom_vline(aes(xintercept = mean_points), color = 'black', linetype = 'dashed') +
-  labs(x = "Distribution of team points over the tournament", y = "Density",
-       title = "R1 judging and the distribution of team outcomes") +
-  guides(fill=guide_legend("R1 judging"), alpha = F)
-```
-
 ![](analysis_files/figure-markdown_github/r1_judging-1.png)
 
 Breaking and non-breaking chairs have a very similar distribution of
@@ -254,23 +183,9 @@ good teams who later rise up). Instead, a test of distributions fails to
 reject the null (*p* = 0.98) that these distributions are different at
 all.
 
-``` r
-b <- s %>% filter(chair_broke == "Chair broke") %>% pull(tot_points)
-nb <- s %>% filter(chair_broke == "Chair didn't break") %>% pull(tot_points)
-test <- ks.test(b, nb, tot_points ~ chair, s) %>% broom::tidy()
-kable(test, format = 'markdown')
-```
-
 |  statistic|   p.value| method                             | alternative |
 |----------:|---------:|:-----------------------------------|:------------|
 |  0.1439394|  0.976597| Two-sample Kolmogorov-Smirnov test | two-sided   |
-
-``` r
-# test %>% select(-alternative) %>% gt() %>% cols_align("center") %>% tab_header("") %>%
-#   tab_style(style = cell_text(weight = "bold"), location = cells_body(columns = vars(p.value))) %>%
-#   tab_header("R1 chair quality variation doesn't create different outcomes for teams") %>%
-#   tab_source_note("Chair quality proxied by breaking.")
-```
 
 So the major objection I’ve heard to tapered scoring also doesn’t seem
 to hold: judge variance doesn’t really create variance in a team’s
