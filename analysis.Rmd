@@ -12,7 +12,7 @@ knitr::opts_chunk$set(message = F)
 knitr::opts_chunk$set(warning = F)
 
 pacman::p_load(tidyverse, janitor, AER, sandwich, here, gt,
-               pixiedust, xtable)
+               pixiedust, xtable, broom, knitr)
 
 # theme               
 if (!require("ggthemr")) {
@@ -87,7 +87,7 @@ ggplot(break_df, aes(x = round, y = estimate, color = type)) +
   facet_wrap(~type, scales = "free") +
   labs(x = "Round number", y = "Estimated impact of points on break odds",
        title = "Winning a given round has no significant impact on break odds") +
-  theme(plot.title = element_text(hjust = 0.5, size = 16))
+  theme(plot.title = element_text(hjust = 0.5, size = 14))
 ```
 
 Here, we are estimating the effect of *rank* in a round rather than points, to avoid underweighting the effect of early rounds (which have more points, so the marginal impact of a rank is 3x higher than the marginal impact of a point). Negative results mean that a higher numerical rank - a worse rank - is associated with a worse break outcome.
@@ -159,10 +159,11 @@ Breaking and non-breaking chairs have a very similar distribution of outcomes fo
 b <- s %>% filter(chair_broke == "Chair broke") %>% pull(tot_points)
 nb <- s %>% filter(chair_broke == "Chair didn't break") %>% pull(tot_points)
 test <- ks.test(b, nb, tot_points ~ chair, s) %>% broom::tidy()
-test %>% select(-alternative) %>% gt() %>% cols_align("center") %>% tab_header("") %>%
-  tab_style(style = cell_text(weight = "bold"), location = cells_body(columns = vars(p.value))) %>%
-  tab_header("R1 chair quality variation doesn't create different outcomes for teams") %>%
-  tab_source_note("Chair quality proxied by breaking.")
+kable(test, format = 'markdown')
+# test %>% select(-alternative) %>% gt() %>% cols_align("center") %>% tab_header("") %>%
+#   tab_style(style = cell_text(weight = "bold"), location = cells_body(columns = vars(p.value))) %>%
+#   tab_header("R1 chair quality variation doesn't create different outcomes for teams") %>%
+#   tab_source_note("Chair quality proxied by breaking.")
 ```
 
 So the major objection I've heard to tapered scoring also doesn't seem to hold: judge variance doesn't really create variance in a team's overall outcome. This is pretty consistent with the first observation that each individual round has no impact on the break.
